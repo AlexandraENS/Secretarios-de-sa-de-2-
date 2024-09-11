@@ -1,0 +1,124 @@
+---
+title: "Duração de mandato nas Secretarias Estaduais de Saúde"
+author: "Alexandra Emanuela Novais Silva"
+date: "2024-09-04"
+output: html_document
+subtitle: "uma análise de como o gênero afeta o tempo dos mandatos nas regiões brasileiras"
+---
+
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+options(repos = c(CRAN = "https://cloud.r-project.org/"))
+```
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+install.packages("readxl")
+install.packages("dplyr")
+install.packages("lubridate")
+install.packages("ggplot2")
+install.packages("tidyr")
+install.packages("knitr")
+install.packages("broom")
+install.packages("rmarkdown")
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(broom)
+library(ggplot2)
+library(stats)
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+
+file.choose()
+Secretarios_de_saude_CO <- read_excel("C:/Users/Aleno/OneDrive/Área de Trabalho/Lista 3/_Secretarios de saúde 2.xlsx")
+Secretarios_de_saude_Norte <- read_excel("C:/Users/Aleno/OneDrive/Área de Trabalho/Lista 3/_Secretarios de saúde 2.xlsx", sheet = "Norte")
+Secretarios_de_saude_Nordeste <- read_excel("C:/Users/Aleno/OneDrive/Área de Trabalho/Lista 3/_Secretarios de saúde 2.xlsx", sheet = "Nordeste")
+Secretarios_de_saude_Sudeste <- read_excel("C:/Users/Aleno/OneDrive/Área de Trabalho/Lista 3/_Secretarios de saúde 2.xlsx", sheet = "Sudeste")
+Secretarios_de_saude_Sul <- read_excel("C:/Users/Aleno/OneDrive/Área de Trabalho/Lista 3/_Secretarios de saúde 2.xlsx", sheet = "Sul")
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+prepare_data <- function(df, nome_regiao) {df %>% 
+mutate( Mandato_Inicio = 
+as.numeric(Mandato_Inicio), Mandato_Final = as.numeric(Mandato_Final), 
+duracao_mandato = (Mandato_Final - Mandato_Inicio) + 1 ) %>% 
+select(Gênero, duracao_mandato, PARTIDO) %>% mutate(nome_regiao)}
+
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+secretarios_combinados <- bind_rows(
+  prepare_data(Secretarios_de_saude_CO, "Centro-Oeste"),
+  prepare_data(Secretarios_de_saude_Norte, "Norte"),
+  prepare_data(Secretarios_de_saude_Nordeste, "Nordeste"),
+  prepare_data(Secretarios_de_saude_Sudeste, "Sudeste"),
+  prepare_data(Secretarios_de_saude_Sul,"Sul"))
+```
+
+```{r message=FALSE, warning=FALSE, include=FALSE, results='hide'}
+
+secretarios_combinados <- na.omit(secretarios_combinados)
+```
+
+```{r}
+print(secretarios_combinados)
+```
+
+# Variável de controle 
+
+Escolhemos aqui a variável de controle de ideologia dos governadores, isso porque já existe na teoria discussões de que exista relação entre e a indicação de secretarios de saúde e ideologia partidária dos governadores. 
+
+```{r}
+ secretarios_combinados <- secretarios_combinados %>%
+  mutate(ideologia = case_when(
+    PARTIDO %in% c("DEM", "PMDB", "PP", "PSC", "PSD", "PSDB", "SD", "PFL") ~ "Direita",
+    PARTIDO %in% c("PCdoB", "PDT", "PSB", "PT", "PPS", "PROS") ~ "Esquerda"))
+
+print(secretarios_combinados)
+```
+# Modelo estatístico 
+
+---
+ 
+O modelo que usamos aqui foi a regressão linear, pois esta é utilizada para verificar se existe significância estatística entre duas variáveis. 
+Para que exista relação então entre os fatores, é necessário que o p valor seja menor que 0.05, isso porque o p valor representa a probabilidade da variável não ser significativa. 
+
+# Regressão Linear 
+
+```{r}
+modelo_lm <- lm(duracao_mandato ~ Gênero + ideologia, data = secretarios_combinados)
+
+summary(modelo_lm)
+
+```
+
+Desse modo, demostramos que o resutado da regressão os dados não são siginificantes estatisitcamente para explicar nossa hipótese da influencia de gênero na duração dos mandatos nas secretarias de estaduais de saúde. 
+
+#Resultados 
+
+```{r}
+par(mfrow=c(2,2))
+plot(modelo_lm)
+par(mfrow=c(1,1))
+```
+
+Além disso, os gráficos da análise de pressupostos, que demonstram primeiro que, há linearidade mas não a homocedasticidade. Verificamos também que  distribuição não é normal. Além disso, que há pontos de alavancagem e que na nossa amostra existem outliers. 
+
+# Conclusão 
+
+Apesar da literatura apresentar a dificuldade de mulheres ascenderem e permanecerem em cargos de liderança, nossos dados demonstraram que não existe relação entre as variáveis de análise, o gênero e a duração de mandato. Apesar de inserimos uma variável de idelogia como controle, nós não obtivemos significância estatística para a correlação. Isso pode indicar que nossa hipótese é rasa ou mesmo que existe a necessidade de indicarmos outras variáveis para que o teste seja mais robusto. 
+
+
